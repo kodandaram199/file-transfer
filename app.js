@@ -1,10 +1,10 @@
-var express = require("express");
+const express = require("express");
 require("dotenv").config({ path: "./bin/.env" });
-var app = express();
+const app = express();
+const socket = require("socket.io");
 
 const existingIds = [];
-const userIds = []
-
+global.usersCodes = new Map();
 function generateRandomId(user, ch, num) {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let id = "";
@@ -22,10 +22,9 @@ function generateRandomId(user, ch, num) {
       return id;
     }
   } else {
-    if (userIds.includes(id)) {
+    if (!global.usersCodes.get(id)) {
       return generateRandomId();
     } else {
-        userIds.push(id);
       return id;
     }
   }
@@ -43,11 +42,48 @@ app.get("/receiver/generate-unique-id", (req, res) => {
 app.get("/user-id", (req, res) => {
   try {
     const id = generateRandomId(1, 10, 10);
+    global.usersCodes.set(id, 1);
     console.log(userIds);
     res.send(id);
   } catch (error) {
     res.send(error);
   }
+});
+
+const io = socket(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    credentials: true,
+  },
+});
+io.on("connection", (socket) => {
+  global.chatSocket = socket;
+  socket.on("create-user-code", (userId) => {
+    usersCodes.set(userId, socket.id);
+  });
+
+  socket.on('file-upload', (data) => {
+    const { to, fileName, fileContent } = data;
+    const sendUserSocket = onlineUsers.get(to);
+    fs.writeFile(`uploads/${fileName}`, fileContent, (err) => {
+      if (err) {
+        console.error(err);
+        socket.to(sendUserSocket).emit('file-upload-failed', err.message);
+      } else {
+        socket.to(sendUserSocket).emit('file-upload-success', { fileName });
+        const file = path.join(__dirname, 'uploads', fileName);
+        fs.readFile(file, (err, fileContent) => {
+          if (err) {
+            console.error(err);
+            socket.to(sendUserSocket).emit('file-download-failed', err.message);
+          } else {
+            const fileData = { fileName, fileContent };
+            socket.to(sendUserSocket).emit('file-uploaded', fileData);
+          }
+        });
+      }
+    });
+  });
 });
 
 app.listen(3000, () => {
