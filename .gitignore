@@ -1,0 +1,4 @@
+*.ecd env
+sendgrid.env
+.env
+/node_modules
