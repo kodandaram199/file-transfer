@@ -4,6 +4,7 @@ var app = express();
 
 const existingIds = [];
 const userIds = []
+
 function generateRandomId(user, ch, num) {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let id = "";
