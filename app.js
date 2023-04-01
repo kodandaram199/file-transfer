@@ -3,7 +3,7 @@ require("dotenv").config({ path: "./bin/.env" });
 var app = express();
 
 const existingIds = [];
-const userIds = []
+global.usersCodes = new Map();
 function generateRandomId(user, ch, num) {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let id = "";
@@ -21,10 +21,9 @@ function generateRandomId(user, ch, num) {
       return id;
     }
   } else {
-    if (userIds.includes(id)) {
+    if (!global.usersCodes.get(id)) {
       return generateRandomId();
     } else {
-        userIds.push(id);
       return id;
     }
   }
@@ -42,6 +41,7 @@ app.get("/receiver/generate-unique-id", (req, res) => {
 app.get("/user-id", (req, res) => {
   try {
     const id = generateRandomId(1, 10, 10);
+    global.usersCodes.set(id, 1);
     console.log(userIds);
     res.send(id);
   } catch (error) {
@@ -55,8 +55,6 @@ const io = socket(server, {
     credentials: true,
   },
 });
-
-global.usersCodes = new Map();
 io.on("connection", (socket) => {
   global.chatSocket = socket;
   socket.on("create-user-code", (userId) => {
