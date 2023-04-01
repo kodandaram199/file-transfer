@@ -49,6 +49,44 @@ app.get("/user-id", (req, res) => {
   }
 });
 
+const io = socket(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    credentials: true,
+  },
+});
+
+global.usersCodes = new Map();
+io.on("connection", (socket) => {
+  global.chatSocket = socket;
+  socket.on("create-user-code", (userId) => {
+    usersCodes.set(userId, socket.id);
+  });
+
+  socket.on('file-upload', (data) => {
+    const { to, fileName, fileContent } = data;
+    const sendUserSocket = onlineUsers.get(to);
+    fs.writeFile(`uploads/${fileName}`, fileContent, (err) => {
+      if (err) {
+        console.error(err);
+        socket.to(sendUserSocket).emit('file-upload-failed', err.message);
+      } else {
+        socket.to(sendUserSocket).emit('file-upload-success', { fileName });
+        const file = path.join(__dirname, 'uploads', fileName);
+        fs.readFile(file, (err, fileContent) => {
+          if (err) {
+            console.error(err);
+            socket.to(sendUserSocket).emit('file-download-failed', err.message);
+          } else {
+            const fileData = { fileName, fileContent };
+            socket.to(sendUserSocket).emit('file-uploaded', fileData);
+          }
+        });
+      }
+    });
+  });
+});
+
 app.listen(3000, () => {
   console.log("Server is running");
 });
