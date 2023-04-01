@@ -1,6 +1,7 @@
-var express = require("express");
+const express = require("express");
 require("dotenv").config({ path: "./bin/.env" });
-var app = express();
+const app = express();
+const socket = require("socket.io");
 
 const existingIds = [];
 global.usersCodes = new Map();
